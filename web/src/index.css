@@ -1,0 +1,52 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/crimson-pro/500.css';
+@import '@fontsource/crimson-pro/600.css';
+@import '@fontsource/crimson-pro/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Meridian tokens: warm porcelain canvas, navy ink, one ember accent, muted clinical status colours. */
+:root {
+  --canvas: 247 246 242; --surface: 255 255 255; --raised: 252 251 248; --sunken: 241 239 233;
+  --ink: 16 19 58; --ink-2: 58 62 94; --ink-3: 104 108 134; --ink-4: 150 153 172;
+  --line: 229 226 218; --line-strong: 210 206 196;
+  --ember: 232 89 12; --ember-soft: 253 238 227; --ember-ink: 176 64 6;
+  --urgent: 180 35 47; --urgent-soft: 251 234 235;
+  --attention: 168 96 8; --attention-soft: 252 243 224;
+  --stable: 47 125 79; --stable-soft: 229 244 235;
+  --info: 61 90 128; --info-soft: 232 239 248;
+  --uncertain: 107 78 143; --uncertain-soft: 241 236 248;
+  color-scheme: light;
+}
+[data-theme='dark'] {
+  --canvas: 11 13 33; --surface: 18 21 50; --raised: 23 27 60; --sunken: 14 16 40;
+  --ink: 238 238 246; --ink-2: 200 202 222; --ink-3: 150 153 184; --ink-4: 110 114 148;
+  --line: 38 42 80; --line-strong: 56 61 104;
+  --ember: 245 128 46; --ember-soft: 58 36 30; --ember-ink: 250 160 90;
+  --urgent: 240 110 118; --urgent-soft: 60 26 38;
+  --attention: 236 170 70; --attention-soft: 58 44 24;
+  --stable: 110 200 145; --stable-soft: 24 52 44;
+  --info: 140 170 220; --info-soft: 28 38 68;
+  --uncertain: 184 160 230; --uncertain-soft: 44 34 70;
+  color-scheme: dark;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { @apply bg-canvas text-ink font-sans text-base; font-feature-settings: 'cv11', 'ss01', 'tnum' 0; }
+  ::selection { background: rgb(var(--ember) / 0.2); }
+  :focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(var(--ember) / 0.3); border-radius: 8px; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .card { @apply bg-surface border border-line rounded-xl shadow-card; }
+  .label { @apply text-2xs font-semibold uppercase tracking-[0.08em] text-ink-3; }
+  .display { @apply font-serif font-semibold tracking-tight text-ink; }
+  .input { @apply w-full h-10 px-3 rounded-lg bg-surface border border-line-strong text-ink placeholder:text-ink-4 transition focus:border-ember focus:shadow-focus outline-none; }
+  .textarea { @apply w-full px-3 py-2.5 rounded-lg bg-surface border border-line-strong text-ink placeholder:text-ink-4 transition focus:border-ember focus:shadow-focus outline-none; }
+  .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line-strong)) transparent; }
+  .link { @apply text-ember-ink hover:underline underline-offset-2; }
+}

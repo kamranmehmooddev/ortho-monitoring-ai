@@ -12,3 +12,5 @@ android/local.properties
 .idea/
 *.iml
 coverage/
+web/node_modules/
+server/node_modules/
