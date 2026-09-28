@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { sql, j } from '../db/db.js';
+import { sql, j, VIEW_ORDER } from '../db/db.js';
 import { h, badRequest, notFound, HttpError } from '../lib/http.js';
 import { newId } from '../lib/ids.js';
 import { addDays, daysBetween, hoursSince, nowIso, today } from '../lib/time.js';
@@ -84,7 +84,7 @@ reviewRouter.get('/review-queue', requireStaff('patients.read'), h((req) => {
     WHERE ch.tenant_id = ? AND ch.status = 'awaiting_review' ${bf.clause} ORDER BY ch.priority_score DESC, ch.submitted_at`, c.tenantId, ...bf.params);
   const items = rows.map((r) => {
     const findings = sql.all("SELECT * FROM findings WHERE tenant_id = ? AND checkin_id = ? AND status != 'dismissed'", c.tenantId, r.id).map(serializeFinding);
-    const thumbs = sql.all("SELECT id, view, quality_status FROM images WHERE tenant_id = ? AND owner_type = 'checkin' AND owner_id = ? ORDER BY view LIMIT 5", c.tenantId, r.id);
+    const thumbs = sql.all(`SELECT id, view, quality_status FROM images WHERE tenant_id = ? AND owner_type = 'checkin' AND owner_id = ? ORDER BY ${VIEW_ORDER} LIMIT 5`, c.tenantId, r.id);
     return {
       checkinId: r.id, patientId: r.patient_id, patientName: `${r.first_name} ${r.last_name}`, avatarHue: r.avatar_hue, mode: r.mode, stageNo: r.stage_no,
       submittedAt: r.submitted_at, waitingHours: r.submitted_at ? Math.round(hoursSince(r.submitted_at)) : 0, priority: r.priority_score, reasons: j.parse(r.priority_reasons_json, []),
@@ -110,11 +110,11 @@ reviewRouter.get('/checkins/:id', requireStaff('patients.read'), h((req) => {
   const p = assertPatientAccess(c, chk.patient_id) && sql.get('SELECT * FROM patients WHERE id = ?', chk.patient_id)!;
   const planRow = activePlan(c.tenantId, p.id);
   const bundle = planRow ? planBundle(c.tenantId, planRow.id) : null;
-  const imgs = sql.all("SELECT * FROM images WHERE tenant_id = ? AND owner_type = 'checkin' AND owner_id = ? ORDER BY view, with_aligner DESC", c.tenantId, chk.id);
+  const imgs = sql.all(`SELECT * FROM images WHERE tenant_id = ? AND owner_type = 'checkin' AND owner_id = ? ORDER BY ${VIEW_ORDER}, with_aligner DESC`, c.tenantId, chk.id);
   const prevChk = sql.get("SELECT * FROM checkins WHERE tenant_id = ? AND patient_id = ? AND created_at < ? AND submitted_at IS NOT NULL ORDER BY created_at DESC LIMIT 1", c.tenantId, p.id, chk.created_at);
   const prevImgs = VIEWS.map((v) => sql.get(`SELECT i.* FROM images i JOIN checkins x ON x.id = i.owner_id WHERE i.tenant_id = ? AND i.patient_id = ? AND i.owner_type = 'checkin' AND i.view = ?
     AND x.created_at < ? AND i.quality_status IN ('usable','limited') ORDER BY x.created_at DESC LIMIT 1`, c.tenantId, p.id, v, chk.created_at)).filter(Boolean);
-  const refs = sql.all("SELECT * FROM images WHERE tenant_id = ? AND patient_id = ? AND owner_type = 'reference' ORDER BY view", c.tenantId, p.id);
+  const refs = sql.all(`SELECT * FROM images WHERE tenant_id = ? AND patient_id = ? AND owner_type = 'reference' ORDER BY ${VIEW_ORDER}`, c.tenantId, p.id);
   const annotations = sql.all(`SELECT a.*, u.name AS author FROM annotations a LEFT JOIN users u ON u.id = a.author_id WHERE a.tenant_id = ? AND a.image_id IN (${[...imgs, ...prevImgs, ...refs].map(() => '?').join(',') || "''"})`,
     c.tenantId, ...[...imgs, ...prevImgs, ...refs].map((i: any) => i.id));
   const findings = sql.all('SELECT * FROM findings WHERE tenant_id = ? AND checkin_id = ? ORDER BY CASE status WHEN \'open\' THEN 0 ELSE 1 END, created_at', c.tenantId, chk.id).map(serializeFinding);

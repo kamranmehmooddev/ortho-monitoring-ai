@@ -148,7 +148,7 @@ export function nextCheckinFor(tenantId: string, patientId: string) {
   return nextCheckin({
     lastCheckin: last?.submitted_at.slice(0, 10) ?? today(), intervalDays: proto?.checkin_interval_days ?? 7, nextChangeDate: current?.expected_change ?? null,
     lastDecision: decisions[0]?.type ?? null, holdDays: decisions[0]?.hold_days ?? 0, consecutiveCleanGo: clean,
-    lowWearStreak: (wearMedian(tenantId, patientId, 14) ?? 24) < 20 ? 2 : 0,
+    lowWearStreak: (wearMedian(tenantId, patientId, 14) ?? 24) < 20 ? 2 : 0, today: today(),
   });
 }
 

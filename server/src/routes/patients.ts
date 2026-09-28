@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { sql, j } from '../db/db.js';
+import { sql, j, VIEW_ORDER } from '../db/db.js';
 import { h, badRequest, notFound, HttpError } from '../lib/http.js';
 import { newId } from '../lib/ids.js';
 import { addDays, nowIso, today } from '../lib/time.js';
@@ -89,14 +89,15 @@ patientsRouter.get('/patients/:id', requireStaff('patients.read'), h((req) => {
   const appts = sql.all('SELECT a.*, u.name AS doctor FROM appointments a LEFT JOIN users u ON u.id = a.doctor_id WHERE a.tenant_id = ? AND a.patient_id = ? ORDER BY a.start_at DESC', c.tenantId, p.id);
   const rec = sql.get("SELECT * FROM appointment_recommendations WHERE tenant_id = ? AND patient_id = ? AND status = 'proposed' ORDER BY created_at DESC LIMIT 1", c.tenantId, p.id);
   const wear = sql.all('SELECT date, hours FROM wear_logs WHERE tenant_id = ? AND patient_id = ? AND date >= ? ORDER BY date', c.tenantId, p.id, addDays(today(), -28));
-  const refs = sql.all("SELECT * FROM images WHERE tenant_id = ? AND patient_id = ? AND owner_type = 'reference' ORDER BY view", c.tenantId, p.id);
+  const refs = sql.all(`SELECT * FROM images WHERE tenant_id = ? AND patient_id = ? AND owner_type = 'reference' ORDER BY ${VIEW_ORDER}`, c.tenantId, p.id);
   const decisions = sql.all('SELECT d.*, u.name AS by_name FROM decisions d LEFT JOIN users u ON u.id = d.decided_by WHERE d.tenant_id = ? AND d.patient_id = ? ORDER BY d.decided_at DESC', c.tenantId, p.id);
   auditReq(req, 'patient.view', 'patient', p.id, { patientId: p.id });
   return {
     patient: patientSummary(c.tenantId, p),
     plan: bundle ? { ...bundle, totalStages: totalStages(bundle) } : null,
     checkins: checkins.map((x) => ({ id: x.id, status: x.status, stageNo: x.stage_no, submittedAt: x.submitted_at, reviewedAt: x.reviewed_at, priority: x.priority_score,
-      gonogo: j.parse<{ recommendation?: string }>(x.gonogo_json, {}).recommendation ?? null, painLevel: x.pain_level, fit: x.fit, wear: x.wear_hours_bucket,
+      gonogo: j.parse<{ recommendation?: string }>(x.gonogo_json, {}).recommendation ?? null,
+      decision: sql.get('SELECT type FROM decisions WHERE checkin_id = ? ORDER BY decided_at DESC LIMIT 1', x.id)?.type ?? null, painLevel: x.pain_level, fit: x.fit, wear: x.wear_hours_bucket,
       imageCount: sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM images WHERE owner_type = 'checkin' AND owner_id = ?", x.id)?.n ?? 0 })),
     findings,
     issues: issues.map((i) => ({ id: i.id, category: i.category, label: ISSUE_CATEGORIES[i.category as keyof typeof ISSUE_CATEGORIES], urgency: i.urgency, status: i.triage_status, details: i.details, createdAt: i.created_at, resolvedAt: i.resolved_at })),
@@ -215,7 +216,7 @@ patientsRouter.get('/patients/:id/timeline', requireStaff('patients.read'), h((r
   const T = c.tenantId, P = req.params.id;
   const ev: { at: string; type: string; title: string; detail?: string; ref?: string; tone?: string; images?: string[] }[] = [];
   for (const x of sql.all('SELECT * FROM checkins WHERE tenant_id = ? AND patient_id = ? AND submitted_at IS NOT NULL', T, P)) {
-    const imgs = sql.all("SELECT id FROM images WHERE owner_type = 'checkin' AND owner_id = ? ORDER BY view LIMIT 5", x.id).map((i) => i.id);
+    const imgs = sql.all(`SELECT id FROM images WHERE owner_type = 'checkin' AND owner_id = ? ORDER BY ${VIEW_ORDER} LIMIT 5`, x.id).map((i) => i.id);
     ev.push({ at: x.submitted_at, type: 'checkin', title: `Check-in · aligner ${x.reported_aligner ?? x.stage_no ?? '?'}`, detail: `Wear ${x.wear_hours_bucket ?? 'n/a'} h · fit ${x.fit ?? 'n/a'}${x.pain_level ? ` · pain ${x.pain_level}/10` : ''}`, ref: x.id, tone: x.status === 'retake_requested' ? 'attention' : 'info', images: imgs });
   }
   for (const d of sql.all('SELECT d.*, u.name FROM decisions d LEFT JOIN users u ON u.id = d.decided_by WHERE d.tenant_id = ? AND d.patient_id = ?', T, P)) {

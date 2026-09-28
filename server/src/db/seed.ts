@@ -290,6 +290,8 @@ let TOM = '';
 {
   const { id } = mkPatient({ first: 'Samuel', last: 'Okoye', dob: '2008-03-19', mode: 'fixed', protocol: P_FIXED, hue: 185, branch: BR2, doctor: REYES, guardian: { name: 'Grace Okoye', relationship: 'Mother' },
     plan: { system: 'Fixed · 0.022 MBT', total: 12, stageDays: 21, stage: 5, daysOn: 12, instructions: 'Class II elastics 1/4" 3.5oz, wear 20 hours a day. See at stage 6 for archwire change.', visits: [{ stage: 6, reason: 'Archwire change 19x25 NiTi', procedures: ['archwire'] }] } });
+  const fixedImgs = { front: 'front_noaligner_a', left: 'left_attach_missing_a', right: 'right_aligner_a', upper: 'upper_noaligner_b', lower: 'lower_noaligner_b' };
+  mkCheckin(id, null, { daysAgo: 12, stage: 5, images: fixedImgs, wear: '20-22', decision: { type: 'go', by: REYES, message: 'Brackets and wire look intact. Keep wearing your elastics 20 hours a day.' } });
   issue(id, 'bracket_loose', 0, 8, 'Bracket on lower left tooth is spinning on the wire since last night.', 2);
   appt(id, 9, '10:00', 30, 'progress_review', 'booked', REYES, BR2, 1);
 }

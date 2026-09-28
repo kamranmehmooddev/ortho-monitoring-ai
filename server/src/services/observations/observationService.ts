@@ -1,4 +1,4 @@
-import { sql, j } from '../../db/db.js';
+import { sql, j, VIEW_ORDER } from '../../db/db.js';
 import { newId } from '../../lib/ids.js';
 import { nowIso } from '../../lib/time.js';
 import { getBlob } from '../storage.js';
@@ -104,7 +104,7 @@ export async function analyzeCheckin(tenantId: string, checkinId: string): Promi
   };
   if (!consent.ai_processing) return done('no_consent', 'Patient has not consented to AI processing. Images were not sent to any AI provider.');
 
-  const images = sql.all("SELECT * FROM images WHERE tenant_id = ? AND owner_type = 'checkin' AND owner_id = ? AND quality_status IN ('usable','limited') ORDER BY view", tenantId, checkinId);
+  const images = sql.all(`SELECT * FROM images WHERE tenant_id = ? AND owner_type = 'checkin' AND owner_id = ? AND quality_status IN ('usable','limited') ORDER BY ${VIEW_ORDER}`, tenantId, checkinId);
   if (!images.length) return done('no_usable_images', 'No image passed the quality check, so no observations were generated.');
 
   const planRow = activePlan(tenantId, chk.patient_id);

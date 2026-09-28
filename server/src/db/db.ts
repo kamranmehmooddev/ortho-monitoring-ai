@@ -54,3 +54,6 @@ export const j = {
   parse<T = any>(s: string | null | undefined, fallback: T): T { if (!s) return fallback; try { return JSON.parse(s) as T; } catch { return fallback; } },
   str: (v: unknown) => JSON.stringify(v ?? null),
 };
+
+/** Canonical clinical ordering of photo views. */
+export const VIEW_ORDER = "CASE view WHEN 'front' THEN 1 WHEN 'left' THEN 2 WHEN 'right' THEN 3 WHEN 'upper' THEN 4 WHEN 'lower' THEN 5 ELSE 6 END";
