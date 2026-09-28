@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.log
+.env
+server/data/
+!server/data/.gitkeep
+.DS_Store
+android/.gradle/
+android/build/
+android/**/build/
+android/local.properties
+.idea/
+*.iml
+coverage/
