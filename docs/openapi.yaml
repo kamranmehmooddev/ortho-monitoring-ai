@@ -1,0 +1,177 @@
+openapi: 3.1.0
+info:
+  title: Ortho Monitoring AI API
+  version: 1.0.0
+  description: |
+    Remote orthodontic monitoring API. AI output is decision support for clinician review ("possible" /
+    "cannot_assess" observations with uncertainty) and is not a validated diagnostic device.
+    Full reference: docs/API.md.
+servers:
+  - url: http://localhost:4000/api/v1
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer, description: "Staff JWT, patient token (omp_…) or integration API key (omk_live_…)" }
+  schemas:
+    Error:
+      type: object
+      properties: { error: { type: object, properties: { code: { type: string }, message: { type: string }, details: {} } } }
+    Consent:
+      type: object
+      required: [photos, ai_processing, messaging]
+      properties: { photos: { type: boolean }, ai_processing: { type: boolean }, messaging: { type: boolean }, research: { type: boolean } }
+    Finding:
+      type: object
+      properties:
+        id: { type: string }
+        category: { type: string, enum: [tracking_gap, aligner_damage, attachment_missing, attachment_damaged, attachment_obscured, progress_deviation, spacing_change, bracket_debond, wire_issue, elastic_noncompliance, plaque, gingival_inflammation, soft_tissue_lesion, ipr_followup, other] }
+        assessment: { type: string, enum: [possible, cannot_assess] }
+        uncertainty: { type: string, enum: [low, medium, high] }
+        novelty: { type: string, enum: [new, persistent, resolved, unknown] }
+        teeth: { type: array, items: { type: integer, description: FDI } }
+        view: { type: string, enum: [front, left, right, upper, lower] }
+        bbox: { type: [object, "null"], properties: { x: { type: number }, y: { type: number }, w: { type: number }, h: { type: number } } }
+        status: { type: string, enum: [open, confirmed, dismissed, corrected] }
+        source: { type: string, enum: [model, clinician, seed_demo] }
+        modelVersion: { type: string }
+        promptVersion: { type: string }
+    GoNoGo:
+      type: object
+      properties:
+        version: { type: string, example: gonogo-v1 }
+        recommendation: { type: string, enum: [go, no_go, retake, visit, not_yet] }
+        confidence: { type: string, enum: [high, medium, low] }
+        headline: { type: string }
+        checks: { type: array, items: { type: object, properties: { id: { type: string }, label: { type: string }, passed: { type: boolean }, detail: { type: string }, effect: { type: string } } } }
+        suggestedHoldDays: { type: integer }
+        batchEligible: { type: boolean }
+    Recommendation:
+      type: object
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [progress_review, ipr, attachment_replacement, tracking_assessment, refinement_scan, repair, debond] }
+        earliest: { type: string, format: date }
+        latest: { type: string, format: date }
+        target_date: { type: string, format: date }
+        duration_min: { type: integer }
+        uncertainty: { type: string, enum: [low, medium, high] }
+        factors: { type: array, items: { type: object, properties: { text: { type: string }, basis: { type: string }, minutes: { type: integer } } } }
+    Decision:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [go, no_go, retake, visit] }
+        holdDays: { type: integer, minimum: 1, maximum: 30 }
+        retakeViews: { type: array, items: { type: string, enum: [front, left, right, upper, lower] } }
+        message: { type: string }
+        instructionId: { type: string }
+        prescribeChewies: { type: boolean }
+        visit: { type: object, properties: { date: { type: string }, durationMin: { type: integer }, kind: { type: string } } }
+    WebhookEvent:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [patient.created, plan.updated, checkin.submitted, checkin.reviewed, decision.made, stage.advanced, issue.reported, appointment.recommended, appointment.booked, appointment.updated] }
+        created_at: { type: string, format: date-time }
+        tenant_id: { type: string }
+        data: { type: object }
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Staff sign-in
+      requestBody: { content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string }, password: { type: string } } } } } }
+      responses: { "200": { description: Session token and profile }, "401": { description: Invalid credentials, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } } }
+  /integrations/patients:
+    get:
+      summary: List or match patients (scope patients:read)
+      parameters: [{ name: external_ref, in: query, schema: { type: string } }]
+      responses: { "200": { description: Patients } }
+    post:
+      summary: Upsert patient by external_ref (scope patients:write)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name, last_name, external_ref, consent]
+              properties: { first_name: { type: string }, last_name: { type: string }, dob: { type: string }, email: { type: string }, phone: { type: string }, external_ref: { type: string }, branch_id: { type: string }, doctor_id: { type: string }, protocol_id: { type: string }, consent: { $ref: "#/components/schemas/Consent" } }
+      responses: { "200": { description: "{ id, created }" } }
+  /integrations/patients/{id}/plan:
+    put:
+      summary: Import a treatment plan (scope plans:write)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [system, total_upper, total_lower, stage_days, start_date]
+              properties:
+                system: { type: string }
+                total_upper: { type: integer }
+                total_lower: { type: integer }
+                stage_days: { type: integer }
+                start_date: { type: string, format: date }
+                doctor_instructions: { type: string }
+                attachments: { type: array, items: { type: object, properties: { tooth: { type: integer }, type: { type: string }, placed_stage: { type: integer } } } }
+                ipr: { type: array, items: { type: object, properties: { tooth_a: { type: integer }, tooth_b: { type: integer }, amount_mm: { type: number }, stage: { type: integer } } } }
+      responses: { "200": { description: "{ plan_id, stages }" } }
+  /integrations/recommendations:
+    get: { summary: Proposed visits with chair time and factors (scope appointments:read), responses: { "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Recommendation" } } } } } } }
+  /integrations/appointments:
+    get: { summary: Booked appointments (scope appointments:read), parameters: [{ name: from, in: query, schema: { type: string } }, { name: to, in: query, schema: { type: string } }], responses: { "200": { description: OK } } }
+  /integrations/decisions:
+    get: { summary: Clinical decisions feed (scope decisions:read), parameters: [{ name: since, in: query, schema: { type: string } }], responses: { "200": { description: OK } } }
+  /integrations/checkins:
+    get: { summary: Check-in status feed (scope checkins:read), parameters: [{ name: since, in: query, schema: { type: string } }], responses: { "200": { description: OK } } }
+  /checkins/{id}:
+    get:
+      summary: Review bundle (images, quality, findings, plan, go/no-go, recommendation)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK }, "404": { description: Not found or other tenant } }
+  /checkins/{id}/decision:
+    post:
+      summary: Record the clinician decision (clinical.decide permission)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Decision" } } } }
+      responses: { "200": { description: Decision stored, patient notified, webhooks emitted }, "409": { description: Already reviewed } }
+  /findings/{id}/review:
+    post:
+      summary: Confirm, dismiss, correct or reopen an observation
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { content: { application/json: { schema: { type: object, required: [action], properties: { action: { type: string, enum: [confirm, dismiss, correct, reopen] }, category: { type: string }, teeth: { type: array, items: { type: integer } }, note: { type: string } } } } } }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Finding" } } } } }
+  /patient/activate:
+    post:
+      security: []
+      summary: Exchange clinic + activation code for a device token
+      requestBody: { content: { application/json: { schema: { type: object, required: [clinicCode, activationCode], properties: { clinicCode: { type: string }, activationCode: { type: string }, deviceName: { type: string } } } } } }
+      responses: { "200": { description: "{ token, patientId, firstName }" }, "401": { description: Invalid or expired code } }
+  /patient/home:
+    get: { summary: Today's action, stage, dates, appointment, check-in statuses, responses: { "200": { description: OK } } }
+  /patient/checkins:
+    post:
+      summary: Create check-in (idempotent by clientUuid)
+      requestBody: { content: { application/json: { schema: { type: object, required: [clientUuid], properties: { clientUuid: { type: string, format: uuid }, reportedAligner: { type: integer }, wear: { type: string, enum: ["<16", "16-20", "20-22", "22+"] }, fit: { type: string, enum: [good, poor, unsure] }, symptoms: { type: array, items: { type: string } }, painLevel: { type: integer }, concerns: { type: string } } } } } }
+      responses: { "200": { description: "{ id, status, idempotent }" } }
+  /patient/checkins/{id}/images:
+    post:
+      summary: Upload one guided photo (deduplicated by content hash; runs the quality service)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { content: { multipart/form-data: { schema: { type: object, required: [image, view], properties: { image: { type: string, format: binary }, view: { type: string }, withAligner: { type: boolean }, patientOverride: { type: boolean }, capturedAt: { type: string } } } } } }
+      responses: { "200": { description: Stored image with quality verdict }, "409": { description: Check-in no longer accepting photos } }
+  /patient/checkins/{id}/submit:
+    post: { summary: Submit check-in (quality gate → retake request or review queue), parameters: [{ name: id, in: path, required: true, schema: { type: string } }], responses: { "200": { description: "{ status, views }" } } }
+  /patient/issues:
+    post:
+      summary: Report a problem (urgency triage P1–P4; never auto-books)
+      requestBody: { content: { multipart/form-data: { schema: { type: object, required: [clientUuid, category], properties: { clientUuid: { type: string }, category: { type: string, enum: [aligner_cracked, aligner_lost, attachment_off, poor_fit, pain, irritation, bracket_loose, wire_poking, elastic_hook, other] }, painLevel: { type: integer }, severity: { type: integer }, details: { type: string }, photos: { type: array, items: { type: string, format: binary } } } } } } }
+      responses: { "200": { description: "{ id, urgency, guidance, emergency }" } }
+webhooks:
+  event:
+    post:
+      summary: Signed event delivery (X-OMA-Signature t=…,v1=HMAC_SHA256(secret, t.body))
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEvent" } } } }
+      responses: { "2XX": { description: Acknowledged } }

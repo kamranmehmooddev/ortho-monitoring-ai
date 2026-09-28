@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 160" role="img" aria-label="Ortho Monitoring AI">
+  <defs><linearGradient id="p" x1="0" x2="1"><stop offset="0" stop-color="#E8590C"/><stop offset="1" stop-color="#F5B400"/></linearGradient></defs>
+  <rect width="640" height="160" rx="24" fill="#10133A"/>
+  <g transform="translate(34 28) scale(1.6)">
+    <path d="M22 10c-7.5 0-11 5.2-11 12.6 0 7.4 3.6 12.3 5.3 19.6 1.4 6.2 2.5 12 6.2 12s3.8-7 5.5-12c.8-2.4 2.3-3.6 4-3.6s3.2 1.2 4 3.6c1.7 5 1.8 12 5.5 12s4.8-5.8 6.2-12c1.7-7.3 5.3-12.2 5.3-19.6C53 15.2 49.5 10 42 10c-4.4 0-7 2.8-10 2.8S26.4 10 22 10Z" fill="none" stroke="#fff" stroke-width="3.6" stroke-linejoin="round"/>
+    <path d="M3 25.5h16.5l3.6-8 5 15.5 3.8-10.5 2.6 3H55" fill="none" stroke="url(#p)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="58.2" cy="25.5" r="3.4" fill="#F5B400"/>
+  </g>
+  <text x="150" y="72" font-family="Crimson Pro, Georgia, serif" font-weight="700" font-size="46" fill="#fff">Ortho</text>
+  <text x="150" y="122" font-family="Crimson Pro, Georgia, serif" font-weight="700" font-size="46" fill="#fff">Monitoring</text>
+  <rect x="384" y="88" width="50" height="40" rx="8" fill="url(#p)"/>
+  <text x="409" y="118" text-anchor="middle" font-family="Crimson Pro, Georgia, serif" font-weight="700" font-size="28" fill="#10133A">AI</text>
+</svg>

@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Oma" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#10133A</item>
+        <item name="android:navigationBarColor">#F7F6F2</item>
+        <item name="android:windowBackground">@color/canvas</item>
+    </style>
+    <color name="canvas">#F7F6F2</color>
+    <color name="navy">#10133A</color>
+</resources>

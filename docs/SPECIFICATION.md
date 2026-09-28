@@ -586,19 +586,22 @@ name shown in the patient app.
 
 ## 11. Design system ("Meridian")
 
-- **Typography**: *Inter* (UI, tabular numbers) and *Instrument Serif* (display numerals and page titles).
-  Type scale: 12/13/14/16/20/24/32/44.
-- **Colour**: warm porcelain canvas `#F7F6F2`, ink `#15181C`, graphite scale, one accent, **Lagoon** `#0F6E6A`.
-  Status colours are muted: *Urgent* garnet `#B4232F`, *Attention* amber `#A86008`, *Stable* moss `#2F7D4F`,
-  *Info* slate `#3D5A80`, *Uncertain* plum `#6B4E8F` (reserved for "cannot assess" and high uncertainty).
-- **Spacing**: 4-pt base, with generous page gutters (32–48 px on desktop). Cards have a 1 px hairline and no
-  heavy shadows.
-- **Status labels** always pair colour with an icon and a text label, never colour alone.
-- **Image viewer**: a dark "lightbox" surface `#0D0F12` for photos only, so colour is judged neutrally.
-- Dark mode for the clinic workspace. The patient app uses Material 3 with the same tokens and a large touch
-  target size (56 dp).
-
----
+- **Brand**: the Ortho Monitoring AI mark is a tooth outline in white with an orange-to-amber monitoring pulse ending in
+  an amber dot. The wordmark is a serif lockup "Ortho Monitoring" with a gradient **AI** badge. It is reproduced as SVG
+  (web, favicon), an Android adaptive-icon vector, and a native Compose canvas.
+- **Typography**: *Inter* for the UI (tabular numbers for clinical data) and *Crimson Pro* for display headings and
+  numerals, matching the wordmark. Type scale: 11/12/13/14/15/20/28/34/44.
+- **Colour**: navy ink `#10133A` (sidebar, primary actions, dark lightbox chrome) on a warm porcelain canvas `#F7F6F2`.
+  There is one accent family, **Ember → Amber** `#E8590C → #F5B400`, used only for brand moments, progress and focus.
+  Status colours are muted: *Urgent* garnet `#B4232F`, *Attention* amber `#A86008`, *Stable* moss `#2F7D4F`, *Info*
+  slate `#3D5A80`, *Uncertain* plum `#6B4E8F` (reserved for "cannot assess" and high uncertainty). A full dark theme
+  redefines every token.
+- **Spacing**: 4-pt base, generous page gutters (40 px on desktop), 1 px hairlines and soft shadows only on overlays.
+- **Status labels** always pair colour with an icon and a word, never colour alone.
+- **Image viewer**: photos sit on a neutral lightbox `#0B0C10` so colour is judged consistently. Supports synced
+  zoom/pan, wipe, three-up, brightening, finding-region highlights and annotations.
+- **Patient app**: Material 3 with the same tokens, 52–56 dp touch targets, and the clinic's validated accent colour on
+  the "Today" card.
 
 ## 12. Phased implementation plan
 

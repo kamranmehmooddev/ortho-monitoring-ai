@@ -1,0 +1,4 @@
+-keepattributes *Annotation*, InnerClasses
+-keep,includedescriptorclasses class ai.orthomonitoring.patient.data.**$$serializer { *; }
+-keepclassmembers class ai.orthomonitoring.patient.data.** { *** Companion; }
+-keepclasseswithmembers class ai.orthomonitoring.patient.data.** { kotlinx.serialization.KSerializer serializer(...); }

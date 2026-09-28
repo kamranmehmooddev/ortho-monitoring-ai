@@ -145,6 +145,7 @@ export function nextCheckinFor(tenantId: string, patientId: string) {
   const decisions = sql.all("SELECT type, hold_days FROM decisions WHERE tenant_id = ? AND patient_id = ? ORDER BY decided_at DESC LIMIT 5", tenantId, patientId);
   let clean = 0; for (const d of decisions) { if (d.type === 'go') clean++; else break; }
   const current = bundle?.stages.find((s: any) => s.stage_no === bundle.current_stage);
+  if (!last) return { date: today(), reasons: ['First check-in: baseline photos for comparison'] };
   return nextCheckin({
     lastCheckin: last?.submitted_at.slice(0, 10) ?? today(), intervalDays: proto?.checkin_interval_days ?? 7, nextChangeDate: current?.expected_change ?? null,
     lastDecision: decisions[0]?.type ?? null, holdDays: decisions[0]?.hold_days ?? 0, consecutiveCleanGo: clean,

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Ortho Monitoring</string>
+    <string name="channel_reminders">Check-in reminders</string>
+    <string name="channel_updates">Clinic updates</string>
+</resources>
